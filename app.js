@@ -1,15 +1,12 @@
 'use strict';
 
 var platform = require('./platform'),
+	isArray = require('lodash.isarray'),
+	isPlainObject = require('lodash.isplainobject'),
+	async = require('async'),
 	producer, opt = {};
 
-/**
- * Emitted when device data is received.
- * This is the event to listen to in order to get real-time data feed from the connected devices.
- * @param {object} data The data coming from the device represented as JSON Object.
- */
-platform.on('data', function (data) {
-	// TODO: Send data outbound to the other platform, service or app here.
+let sendData = (data) => {
 	data = JSON.stringify(data);
 	if (opt.version === '0.8.x and up') {
 
@@ -21,7 +18,7 @@ platform.on('data', function (data) {
 					title: 'Data Successfully sent to Kafka.',
 					data: data
 				}));
- 			} else {
+			} else {
 				console.error('Error sending data to Kafka', err);
 				platform.handleException(err);
 			}
@@ -39,12 +36,21 @@ platform.on('data', function (data) {
 			platform.handleException(e);
 		}
 	}
+};
+
+platform.on('data', function (data) {
+	if(isPlainObject(data)){
+		sendData(data);
+	}
+	else if(isArray(data)){
+		async.each(data, (datum) => {
+			sendData(datum);
+		});
+	}
+	else
+		platform.handleException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`));
 });
 
-/**
- * Emitted when the platform shuts down the plugin.
- * The Connector should perform cleanup of the resources on this event.
- */
 platform.once('close', function () {
 	var domain = require('domain');
 	var d = domain.create();
@@ -64,11 +70,6 @@ platform.once('close', function () {
 	});
 });
 
-/**
- * Emitted when the platform bootstraps the plugin. The plugin should listen once and execute its init process.
- * Afterwards, platform.notifyReady() should be called to notify the platform that the init process is done.
- * @param {object} options The options or configuration injected by the platform to the plugin.
- */
 platform.once('ready', function (options) {
 
 	options.port = ((options.port) ? options.port : 9092);
