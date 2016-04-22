@@ -6,7 +6,7 @@ var platform = require('./platform'),
 	async = require('async'),
 	producer, opt = {};
 
-let sendData = (data) => {
+let sendData = (data, callback) => {
 	data = JSON.stringify(data);
 	if (opt.version === '0.8.x and up') {
 
@@ -18,10 +18,9 @@ let sendData = (data) => {
 					title: 'Data Successfully sent to Kafka.',
 					data: data
 				}));
-			} else {
-				console.error('Error sending data to Kafka', err);
-				platform.handleException(err);
 			}
+
+            callback(err);
 		});
 
 	} else {
@@ -32,19 +31,28 @@ let sendData = (data) => {
 				data: data
 			}));
 		} catch (e) {
-			console.error('Error sending data to Kafka', e);
-			platform.handleException(e);
+			callback(e);
 		}
 	}
 };
 
 platform.on('data', function (data) {
 	if(isPlainObject(data)){
-		sendData(data);
+		sendData(data, (error) => {
+			if(error) {
+				console.error(error);
+				platform.handleException(error);
+			}
+		});
 	}
 	else if(isArray(data)){
-		async.each(data, (datum) => {
-			sendData(datum);
+		async.each(data, (datum, done) => {
+			sendData(datum, done);
+		}, (error) => {
+			if(error) {
+				console.error(error);
+				platform.handleException(error);
+			}
 		});
 	}
 	else
