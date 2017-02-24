@@ -9,13 +9,18 @@
 	"type": "String",
 	"required": true,
 	"enum" : ["0.7.x","0.8.x and up"],
-	"help": "Currently supports version 0.7.x and 0.8.x and up."
+	"help": "Currently supports version 0.7.x and 0.8.x and up.",
+    "maxLength": 50
   },
   "host": {
 	"label": "Host",
 	"type": "String",
 	"required": true,
-	"help": "Host server connection for Kafka."
+	"help": "Host server connection for Kafka.",
+    "maxLength": 50,
+    "format": {
+      "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$"
+    }
   },
   "port": {
 	"label": "Port",
@@ -27,7 +32,8 @@
 	"label": "Topic",
 	"type": "String",
 	"required": true,
-	"help": "Topic name where the messages will be sent."
+	"help": "Topic name where the messages will be sent.",
+    "maxLength": 50
   },
   "partition": {
 	"label": "Partition",
@@ -39,13 +45,8 @@
 	"label": "Client Id",
 	"type": "String",
 	"required": false,
-	"help": "(Optional) Id of the client connecting to kafka. Applicable only to version 0.8.x and up. Defaults to reekoh-client."
-  },
-  "clientId": {
-	"label": "Client Id",
-	"type": "String",
-	"required": false,
-	"help": "(Optional) Id of the client connecting to kafka. Applicable only to version 0.8.x and up. Defaults to reekoh-client."
+	"help": "(Optional) Id of the client connecting to kafka. Applicable only to version 0.8.x and up. Defaults to reekoh-client.",
+    "maxLength": 100
   },
   "sessionTimeout": {
 	"label": "Session Timeout",

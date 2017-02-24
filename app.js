@@ -1,153 +1,135 @@
-'use strict';
+'use strict'
 
-var platform = require('./platform'),
-	isArray = require('lodash.isarray'),
-	isPlainObject = require('lodash.isplainobject'),
-	async = require('async'),
-	producer, opt = {};
+let reekoh = require('reekoh')
+let _plugin = new reekoh.plugins.Connector()
+let async = require('async')
+let isArray = require('lodash.isarray')
+let isPlainObject = require('lodash.isplainobject')
+let producer = null
 
 let sendData = (data, callback) => {
-	data = JSON.stringify(data);
-	if (opt.version === '0.8.x and up') {
+  data = JSON.stringify(data)
+  if (_plugin.config.version === '0.8.x and up') {
+    let payloads = [{ topic: _plugin.config.topic, messages: data, partition: _plugin.config.partition }]
 
-		var payloads = [{ topic: opt.topic, messages: data, partition: opt.partition }];
+    producer.send(payloads, (err) => {
+      if (!err) {
+        _plugin.log(JSON.stringify({
+          title: 'Data Successfully sent to Kafka.',
+          data: data
+        }))
+      }
 
-		producer.send(payloads, function (err, ackData) {
-			if (!err) {
-				platform.log(JSON.stringify({
-					title: 'Data Successfully sent to Kafka.',
-					data: data
-				}));
-			}
+      callback(err)
+    })
+  } else {
+    try {
+      producer.send(data)
+      _plugin.log(JSON.stringify({
+        title: 'Data Successfully sent to Kafka.',
+        data: data
+      }))
+    } catch (e) {
+      callback(e)
+    }
+  }
+}
 
-            callback(err);
-		});
+/**
+ * Emitted when device data is received.
+ * This is the event to listen to in order to get real-time data feed from the connected devices.
+ * @param {object} data The data coming from the device represented as JSON Object.
+ */
+_plugin.on('data', (data) => {
+  if (isPlainObject(data)) {
+    sendData(data, (error) => {
+      if (error) {
+        console.error(error)
+        _plugin.logException(error)
+      }
+    })
+  } else if (isArray(data)) {
+    async.each(data, (datum, done) => {
+      sendData(datum, done)
+    }, (error) => {
+      if (error) {
+        console.error(error)
+        _plugin.logException(error)
+      }
+    })
+  } else {
+    _plugin.logException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`))
+  }
+})
 
-	} else {
-		try {
-			producer.send(data);
-			platform.log(JSON.stringify({
-				title: 'Data Successfully sent to Kafka.',
-				data: data
-			}));
-		} catch (e) {
-			callback(e);
-		}
-	}
-};
+/**
+ * Emitted when the platform bootstraps the plugin. The plugin should listen once and execute its init process.
+ */
+_plugin.once('ready', () => {
+  _plugin.config.port = ((_plugin.config.port) ? _plugin.config.port : 9092)
 
-platform.on('data', function (data) {
-	if(isPlainObject(data)){
-		sendData(data, (error) => {
-			if(error) {
-				console.error(error);
-				platform.handleException(error);
-			}
-		});
-	}
-	else if(isArray(data)){
-		async.each(data, (datum, done) => {
-			sendData(datum, done);
-		}, (error) => {
-			if(error) {
-				console.error(error);
-				platform.handleException(error);
-			}
-		});
-	}
-	else
-		platform.handleException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`));
-});
+  if (_plugin.config.version === '0.8.x and up') {
+    let clientOpt = {}
+    let url = _plugin.config.host + ':' + _plugin.config.port + '/'
 
-platform.once('close', function () {
-	var domain = require('domain');
-	var d = domain.create();
+    clientOpt.sessionTimeout = ((_plugin.config.sessionTimeout) ? _plugin.config.sessionTimeout : 30000)
+    clientOpt.spinDelay = ((_plugin.config.spinDelay) ? _plugin.config.spinDelay : 1000)
+    clientOpt.retries = ((_plugin.config.retries) ? _plugin.config.retries : 0)
 
-	d.once('error', function(error) {
-		console.error(error);
-		platform.handleException(error);
-		platform.notifyClose();
-		d.exit();
-	});
+    _plugin.config.requireAcks = ((_plugin.config.requireAcks) ? _plugin.config.requireAcks : 1)
+    _plugin.config.ackTimeoutMs = ((_plugin.config.ackTimeoutMs) ? _plugin.config.ackTimeoutMs : 100)
+    _plugin.config.partition = ((_plugin.config.partition) ? _plugin.config.partition : 0)
 
-	d.run(function() {
-		// TODO: Release all resources and close connections etc.
-		if (producer) producer.close();
-		platform.notifyClose(); // Notify the platform that resources have been released.
-		d.exit();
-	});
-});
+    _plugin.config.clientId = ((_plugin.config.clientId) ? _plugin.config.clientId : 'reekoh-client')
 
-platform.once('ready', function (options) {
+    let kafka8 = require('kafka-node')
+    let HighLevelProducer = kafka8.HighLevelProducer
+    let isConnected = false
+    let client = new kafka8.Client(url, _plugin.config.clientId, clientOpt)
 
-	options.port = ((options.port) ? options.port : 9092);
-	opt = {
-		topic     : options.topic,
-		partition : options.partition,
-		version   : options.version
-	};
+    producer = new HighLevelProducer(client, {requireAcks: _plugin.config.requireAcks, ackTimeoutMs: _plugin.config.ackTimeoutMs})
 
-	if (options.version === '0.8.x and up') {
-		var clientOpt = {},
-		    url = options.host + ':' + options.port + '/';
+    setTimeout(() => {
+      if (!isConnected) {
+        _plugin.logException('Cannot connect to Kafka. Host: ' + _plugin.config.host + ' Port: ' + _plugin.config.port)
+        process.exit(1)
+      }
+    }, 5000)
 
-		clientOpt.sessionTimeout = ((options.sessionTimeout) ? options.sessionTimeout  : 30000);
-		clientOpt.spinDelay = ((options.spinDelay) ? options.spinDelay  : 1000);
-		clientOpt.retries = ((options.retries) ? options.retries  : 0);
+    producer.on('ready', () => {
+      isConnected = true
+      _plugin.log('Kafka producer ready version: ' + _plugin.config.version)
+    })
 
-		options.requireAcks = ((options.requireAcks) ? options.requireAcks  : 1);
-		options.ackTimeoutMs = ((options.ackTimeoutMs) ? options.ackTimeoutMs  : 100);
-		options.partition = ((options.partition) ? options.partition  : 0);
+    producer.on('error', (prodErr) => {
+      console.error('Error connecting in Kafka broker.', prodErr)
+      _plugin.logException(prodErr)
+    })
+  } else {
+    let kafka7 = require('kafka')
 
-		options.clientId = ((options.clientId) ? options.clientId  : 'reekoh-client');
+    producer = new kafka7.Producer({
+      host: _plugin.config.host,
+      port: _plugin.config.port,
+      topic: _plugin.config.topic,
+      partition: _plugin.config.partition
+    })
 
-		var kafka8 = require('kafka-node'),
-			HighLevelProducer = kafka8.HighLevelProducer,
-			isConnected = false,
-			client = new kafka8.Client(url, options.clientId, clientOpt);
+    producer.connect()
 
-		producer = new HighLevelProducer(client, {requireAcks: options.requireAcks, ackTimeoutMs: options.ackTimeoutMs});
+    producer.on('connect', (err) => {
+      if (err) _plugin.logException(err)
+      else _plugin.log('Kafka producer ready version: ' + _plugin.config.version)
+    })
 
-		setTimeout(function() {
-			if (!isConnected) {
-				platform.handleException('Cannot connect to Kafka. Host: ' + options.host + ' Port: ' + options.port );
-				process.exit(1);
-			}
-		}, 5000);
+    producer.on('error', (prodErr) => {
+      console.error('Error connecting in Kafka broker.', prodErr)
+      _plugin.logException(prodErr)
+    })
+  }
 
-		producer.on('ready', function () {
-			isConnected = true;
-			platform.log('Kafka producer ready version: ' + options.version);
-			platform.notifyReady();
-		});
+  _plugin.log('Kafka Connector has been initialized.')
+  _plugin.emit('init')
+})
 
-
-		producer.on('error', function (prodErr) {
-			console.error('Error connecting in Kafka broker.', prodErr);
-			platform.handleException(prodErr);
-		});
-
-	} else {
-		var kafka7 = require('kafka');
-
-		producer = new kafka7.Producer({
-			host:         options.host,
-			port:         options.port,
-			topic:        opt.topic,
-			partition:    opt.partition
-		});
-
-		producer.connect();
-
-		producer.on('connect', function(err) {
-			platform.log('Kafka producer ready version: ' + options.version);
-			platform.notifyReady();
-		});
-
-		producer.on('error', function(prodErr) {
-			console.error('Error connecting in Kafka broker.', prodErr);
-			platform.handleException(prodErr);
-		});
-	}
-
-});
+module.exports = _plugin
