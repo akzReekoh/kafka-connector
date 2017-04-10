@@ -11,76 +11,76 @@ metadata:
   price: 0
   tags:
     - kafka
-  config:
-    version:
-      label: Version
-      type: String
-      required: true
-      enum:
-      - 0.7.x
-      - 0.8.x and up
-      help: Currently supports version 0.7.x and 0.8.x and up.
-      maxLength: 1000
-    host:
-      label: Host
-      type: String
-      required: true
-      help: Host server connection for Kafka.
-      maxLength: 1000
-      format:
-        pattern: "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$"
-    port:
-      label: Port
-      type: Number
-      required: false
-      help: "(Optional) Port for the Kafka Host. Defaults to 9023."
-    topic:
-      label: Topic
-      type: String
-      required: true
-      help: Topic name where the messages will be sent.
-      maxLength: 1000
-    partition:
-      label: Partition
-      type: Number
-      required: true
-      help: Partition number in the Topic where the messages will be sent.
-    clientId:
-      label: Client Id
-      type: String
-      required: false
-      help: "(Optional) Id of the client connecting to kafka. Applicable only to version 0.8.x and up. Defaults to reekoh-client."
-      maxLength: 1000
-    sessionTimeout:
-      label: Session Timeout
-      type: Number
-      required: false
-      help: "(Optional) Number of milliseconds before it the client session timeouts if it does not receive a heartbeat from the server. Applicable only to version 0.8.x and up. Defaults to 30000 (ms)."
-    spinDelay:
-      label: Spin Delay
-      type: Number
-      required: false
-      help: "(Optional) The delay in milliseconds between each connection attempts. Applicable only to version 0.8.x and up. Defaults to 1000 (ms)."
-    retries:
-      label: Retries
-      type: Number
-      required: false
-      help: "(Optional) The number of retry attempts for connection loss exception. Applicable only to version 0.8.x and up. Defaults to 0."
-    requireAcks:
-      label: Require Acknowledgement Receipt
-      type: Number
-      required: false
-      enum:
-      - 0
-      - 1
-      - 2
-      help: "(Optional) Acknowledgement receipt setting for the Producer. Applicable only to version 0.8.x and up. Defaults to 1."
-    ackTimeoutMs:
-      label: Acknowledgement Receipt Timeout
-      type: Number
-      required: false
-      help: "(Optional) Number of milliseconds for receiving the acknowledgement receipt before it timeout. Applicable only to version 0.8.x and up. Defaults to 100 (ms)."
   release:
     version: 1.0.0
     notes: path/to/RELEASENOTESv1.0.0.md
     image: path/to/docker/image
+      config:
+        version:
+          label: Version
+          type: String
+          required: true
+          enum:
+          - 0.7.x
+          - 0.8.x and up
+          help: Currently supports version 0.7.x and 0.8.x and up.
+          maxLength: 1000
+        host:
+          label: Host
+          type: String
+          required: true
+          help: Host server connection for Kafka.
+          maxLength: 1000
+          format:
+            pattern: "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$"
+        port:
+          label: Port
+          type: Number
+          required: false
+          help: "(Optional) Port for the Kafka Host. Defaults to 9023."
+        topic:
+          label: Topic
+          type: String
+          required: true
+          help: Topic name where the messages will be sent.
+          maxLength: 1000
+        partition:
+          label: Partition
+          type: Number
+          required: true
+          help: Partition number in the Topic where the messages will be sent.
+        clientId:
+          label: Client Id
+          type: String
+          required: false
+          help: "(Optional) Id of the client connecting to kafka. Applicable only to version 0.8.x and up. Defaults to reekoh-client."
+          maxLength: 1000
+        sessionTimeout:
+          label: Session Timeout
+          type: Number
+          required: false
+          help: "(Optional) Number of milliseconds before it the client session timeouts if it does not receive a heartbeat from the server. Applicable only to version 0.8.x and up. Defaults to 30000 (ms)."
+        spinDelay:
+          label: Spin Delay
+          type: Number
+          required: false
+          help: "(Optional) The delay in milliseconds between each connection attempts. Applicable only to version 0.8.x and up. Defaults to 1000 (ms)."
+        retries:
+          label: Retries
+          type: Number
+          required: false
+          help: "(Optional) The number of retry attempts for connection loss exception. Applicable only to version 0.8.x and up. Defaults to 0."
+        requireAcks:
+          label: Require Acknowledgement Receipt
+          type: Number
+          required: false
+          enum:
+          - 0
+          - 1
+          - 2
+          help: "(Optional) Acknowledgement receipt setting for the Producer. Applicable only to version 0.8.x and up. Defaults to 1."
+        ackTimeoutMs:
+          label: Acknowledgement Receipt Timeout
+          type: Number
+          required: false
+          help: "(Optional) Number of milliseconds for receiving the acknowledgement receipt before it timeout. Applicable only to version 0.8.x and up. Defaults to 100 (ms)."
